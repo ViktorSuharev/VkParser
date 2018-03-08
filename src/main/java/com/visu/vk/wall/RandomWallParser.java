@@ -1,9 +1,11 @@
-package vkparser;
+package com.visu.vk.wall;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.visu.vk.VkApi;
+
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -12,16 +14,11 @@ import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Iterator;
 
-/**
- *
- * @author viktor
- */
-public class VkParser {
+public class RandomWallParser {
 
     public static void main(String[] args) throws IOException {
         String APP_ID = "4819849";
-        //String accessToken = "b66f0dd3d788532aa5de308c182c1b76f99b61688807bc3a69334ca8b9a26440fe5c8cd74547fe1725a10";
-        String accessToken = "dd8a3696700a1081279db8a2fa010a3b4e0e8892b0ebf34c7759432c2ac2e884f6579b37dd5da9523b5f6";
+        String accessToken = "12863a39703ddef6a5dd13063192dbd26fd5ff7fb9056d4549558abf6d4367a6276490dec6a2e5875e2a6";
         HashSet<String> idSet = new HashSet();
 
         String responseOfRandomUsers = VkApi.with(APP_ID, accessToken).getRandomUsers();

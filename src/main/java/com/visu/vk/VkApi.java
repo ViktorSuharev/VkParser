@@ -1,4 +1,4 @@
-package vkparser;
+package com.visu.vk;
 
 import java.awt.Desktop;
 import java.io.BufferedReader;
@@ -8,7 +8,6 @@ import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
-
 
 public final class VkApi {
 
@@ -88,6 +87,14 @@ public final class VkApi {
                 .add("offset", String.valueOf(offset))
                 .add("count", String.valueOf(count))
                 .add("rev", rev ? "1" : "0"));
+    }
+
+    public String getHistory(String userId, int offset, int count, String startMessageId) throws IOException {
+        return invokeApi("messages.getHistory", Params.create()
+                .add("user_id", userId)
+                .add("offset", String.valueOf(offset))
+                .add("count", String.valueOf(count))
+                .add("start_message_id", startMessageId));
     }
 
     public String getAlbums(String userId) throws IOException {
