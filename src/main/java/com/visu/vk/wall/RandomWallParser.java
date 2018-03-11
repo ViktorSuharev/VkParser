@@ -18,7 +18,7 @@ public class RandomWallParser {
 
     public static void main(String[] args) throws IOException {
         String APP_ID = "4819849";
-        String accessToken = "12863a39703ddef6a5dd13063192dbd26fd5ff7fb9056d4549558abf6d4367a6276490dec6a2e5875e2a6";
+        String accessToken = "";
         HashSet<String> idSet = new HashSet();
 
         String responseOfRandomUsers = VkApi.with(APP_ID, accessToken).getRandomUsers();

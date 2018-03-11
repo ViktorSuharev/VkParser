@@ -1,7 +1,6 @@
 package com.visu.vk.dialog.history;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.visu.vk.VkApi;
@@ -13,9 +12,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class HistoryManager {
 
@@ -24,108 +21,60 @@ public class HistoryManager {
     private static final int COUNT = 200;
     private static final boolean REV = false;
 
-    private final List<JsonObject> msgInfo = new ArrayList<>();
-    private final Set<String> messageSet = new HashSet<>();
-    private String lastId = "0";
-    private boolean isEnd = false;
+    private String lastId;
+    private boolean isEnd;
 
-    public void extracAllDialogHistory(VkApi vkApi) throws Exception {
-        extractDialogHistoryFirstBulk(vkApi);
+    public List<JsonObject> extractAllDialogHistory(VkApi vkApi) throws Exception {
+        List<JsonObject> msgInfo = new ArrayList<>();
         while (!isEnd) {
-            extractDialogHistoryBulk(vkApi, lastId);
+            extractDialogHistoryBulk(vkApi, msgInfo, lastId);
             Thread.sleep(400L);
         }
 
+        return msgInfo;
+    }
+
+    private void extractDialogHistoryBulk(VkApi vkApi, List<JsonObject> msgInfo, String lastMsgId) throws IOException {
+        String response = (lastMsgId == null) ?
+                vkApi.getHistory(USER_ID, OFFSET, COUNT, REV) :
+                vkApi.getHistory(USER_ID, OFFSET, COUNT, lastMsgId);
+
+        JsonArray jMessageItems = new JsonParser()
+                .parse(response)
+                .getAsJsonObject()
+                .getAsJsonObject("response")
+                .getAsJsonArray("items");
+
+        for (int i = 0; i < jMessageItems.size(); ++i){
+            JsonObject jMessage = jMessageItems.get(i).getAsJsonObject();
+            lastMsgId = jMessage.get("id").toString();
+            msgInfo.add(jMessage);
+        }
+
+        System.out.println("number of msgs " + jMessageItems.size());
+        if (jMessageItems.size() < 200) {
+            isEnd = true;
+        }
+
+        this.lastId = lastMsgId;
+        System.out.println(lastMsgId);
+    }
+
+    public void writeRecords(List<JsonObject> msgInfo) throws Exception {
         try (Writer writer = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream("filename.txt"), "utf-8"))) {
+                new FileOutputStream("output.txt"), "utf-8"))) {
             Collections.reverse(msgInfo);
             for (JsonObject msgInfoItem : msgInfo) {
-                writer.write(getUserNameById(msgInfoItem.get("from_id").toString()) + ": " + msgInfoItem.get("body").toString() + "\n");
+                String record = getUserNameById(msgInfoItem.get("from_id").toString())
+                        + ": "
+                        + msgInfoItem.get("body").toString()
+                        + "\n";
+                writer.write(record);
             }
         }
     }
 
-    public void extractDialogHistoryFirstBulk(VkApi vkApi) throws IOException {
-        String response = vkApi.getHistory(USER_ID, OFFSET, COUNT, REV);
-
-        JsonElement jRandomUsers = new JsonParser().parse(response);
-        JsonObject jResponseOfRandomUsers = jRandomUsers.getAsJsonObject();
-        jResponseOfRandomUsers = jResponseOfRandomUsers.getAsJsonObject("response");
-        JsonArray jarrayItemsOfRandomUsers = jResponseOfRandomUsers.getAsJsonArray("items");
-
-        String lastMessageId = "sdf";
-        String messageBody;
-        String messageAuthor;
-        boolean init = true;
-
-        for (int i = 0; i < jarrayItemsOfRandomUsers.size(); ++i){
-
-            JsonObject jItemOfRandomUsers;
-            jItemOfRandomUsers = jarrayItemsOfRandomUsers.get(i).getAsJsonObject();
-/*            lastMessageId = jItemOfRandomUsers.get("id").toString();
-            messageBody = jItemOfRandomUsers.get("body").toString();
-            messageAuthor = jItemOfRandomUsers.get("from_id").toString();*/
-
-            messageSet.add(lastMessageId);
-//            System.out.println(getUserNameById(messageAuthor) + ": " + messageBody);
-
-            msgInfo.add(jItemOfRandomUsers);
-
-            lastMessageId = jItemOfRandomUsers.get("id").toString();
-        }
-
-        System.out.println("number of msgs " + jarrayItemsOfRandomUsers.size());
-        if (jarrayItemsOfRandomUsers.size() < 200) {
-            isEnd = true;
-        }
-
-        this.lastId = lastMessageId;
-        System.out.println(lastMessageId);
-    }
-
-    public void extractDialogHistoryBulk(VkApi vkApi, String lastMsgId) throws IOException {
-//        System.out.println(USER_ID + " " + OFFSET + " " + COUNT + " " + lastMsgId);
-        String response = vkApi.getHistory(USER_ID, OFFSET, COUNT, lastMsgId);
-
-        JsonElement jRandomUsers = new JsonParser().parse(response);
-        JsonObject jResponseOfRandomUsers = jRandomUsers.getAsJsonObject();
-
-//        System.out.println(jResponseOfRandomUsers.toString());
-        jResponseOfRandomUsers = jResponseOfRandomUsers.getAsJsonObject("response");
-        JsonArray jarrayItemsOfRandomUsers = jResponseOfRandomUsers.getAsJsonArray("items");
-
-        String lastMessageId = "sdf";
-        String messageBody;
-        String messageAuthor;
-        boolean init = true;
-
-        Set<String> messageSet = new HashSet<>();
-
-        for (int i = 0; i < jarrayItemsOfRandomUsers.size(); ++i){
-
-            JsonObject jItemOfRandomUsers;
-            jItemOfRandomUsers = jarrayItemsOfRandomUsers.get(i).getAsJsonObject();
-/*            lastMessageId = jItemOfRandomUsers.get("id").toString();
-            messageBody = jItemOfRandomUsers.get("body").toString();
-            messageAuthor = jItemOfRandomUsers.get("from_id").toString();*/
-
-            messageSet.add(lastMessageId);
-//            System.out.println(getUserNameById(messageAuthor) + ": " + messageBody);
-
-            lastMessageId = jItemOfRandomUsers.get("id").toString();
-            msgInfo.add(jItemOfRandomUsers);
-        }
-
-        System.out.println("number of msgs " + jarrayItemsOfRandomUsers.size());
-        if (jarrayItemsOfRandomUsers.size() < 200) {
-            isEnd = true;
-        }
-
-        this.lastId = lastMessageId;
-        System.out.println(lastMessageId);
-    }
-
     private String getUserNameById(String userId) {
-        return ("400001943".equals(userId)) ? "Ira" : "Viktor";
+        return (USER_ID.equals(userId)) ? "Collocutor" : "Me";
     }
 }

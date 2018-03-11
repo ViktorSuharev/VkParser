@@ -57,30 +57,41 @@ public final class VkApi {
     public String getDialogs() throws IOException {
         return invokeApi("messages.getDialogs", null);
     }
-    //  
+
     public String getPostFromWall() throws IOException {
         return invokeApi("wall.get", null);
     }
-    //
+
     public String getRandomUsers() throws IOException {
         return invokeApi("users.search", Params.create()
                 .add("count", "10"));
     }
-    //
+
     public String getUserFriends(String user_id) throws IOException {
         return invokeApi("friends.get", Params.create()
                 .add("user_id", user_id)
                 .add("fiels", "nickname"));
     }
-    //
+
     public String executeBatchOfMetods(String request) throws IOException {
         return invokeApi("execute", Params.create()
                 .add("code", request));
     }
+
     public String getWallByUserId(String owner_id) throws IOException {
         return invokeApi("wall.get", Params.create()
                 .add("owner_id", owner_id));
     }
+
+    public String getHistory(String userId, int offset, int count, boolean rev, String startMessageId) throws IOException {
+        return invokeApi("messages.getHistory", Params.create()
+                .add("user_id", userId)
+                .add("offset", String.valueOf(offset))
+                .add("count", String.valueOf(count))
+                .add("rev", rev ? "1" : "0")
+                .add("start_message_id", startMessageId));
+    }
+
     public String getHistory(String userId, int offset, int count, boolean rev) throws IOException {
         return invokeApi("messages.getHistory", Params.create()
                 .add("user_id", userId)
