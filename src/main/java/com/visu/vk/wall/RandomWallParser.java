@@ -11,8 +11,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 public class RandomWallParser {
@@ -24,6 +26,7 @@ public class RandomWallParser {
     public void collect(VkApi vkApi) throws IOException {
         JsonArray jRandomUserItems = collectUserIds(vkApi);
         collectUserFriendIds(vkApi, jRandomUserItems);
+        Map<String, String> userIdLastMsgMap = getWallNotes(vkApi);
 
     }
 
@@ -80,58 +83,38 @@ public class RandomWallParser {
         System.out.println("Size of set is " + idSet.size());
     }
 
-    private void getWallNotes(VkApi vkApi) throws IOException {
-        try {
-            long counter = 0;
-            Iterator <String> it = idSet.iterator();
-            PrintStream printStream = new PrintStream(new FileOutputStream("output.txt", true), true);
-            printStream.println(idSet.size());
-            while(it.hasNext()){
-                counter++;
-                String userId = it.next();
-                System.out.println("Current user is " + userId);
-                printStream.println("Current user is " + userId);
+    private Map<String, String> getWallNotes(VkApi vkApi) throws IOException {
+        Map<String, String> userIdLastMsgMap = new HashMap<>();
+        for (String userId : idSet){
+            System.out.println("Current user is " + userId);
 
-                delay(DELAY_TIME);
-                String wallNotes = vkApi.getWallByUserId(userId);
+            delay(DELAY_TIME);
+            String wallNotes = vkApi.getWallByUserId(userId);
 
-                JsonObject jWallNotes = new JsonParser()
-                        .parse(wallNotes)
-                        .getAsJsonObject()
-                        .getAsJsonObject("response");
+            JsonObject jWallNotes = new JsonParser()
+                    .parse(wallNotes)
+                    .getAsJsonObject()
+                    .getAsJsonObject("response");
 
-                if (jWallNotes != null) {   // May be user with current ID has deleted profile. In this case vk api sent error response
-                    JsonArray jWallNoteItems = jWallNotes.getAsJsonArray("items");
-                    if (jWallNoteItems.size() != 0) { // May be user have not any notes on the wall.
-                        jWallNotes = jWallNoteItems.get(0).getAsJsonObject();
-                        if (!jWallNotes.get("text").toString().equals("\"\"")) {
-                            System.out.println(counter + " " + jWallNotes.get("text").toString());
-                            printStream.println(counter + " " + jWallNotes.get("text").toString());
-                        }
+            if (jWallNotes != null) {   // May be user with current ID has deleted profile. In this case vk api sent error response
+                JsonArray jWallNoteItems = jWallNotes.getAsJsonArray("items");
+                if (jWallNoteItems.size() != 0) { // May be user have not any notes on the wall.
+                    jWallNotes = jWallNoteItems.get(0).getAsJsonObject();
+                    if (!jWallNotes.get("text").toString().equals("\"\"")) {
+                        String lastWallNote = jWallNotes.get("text").toString();
+                        userIdLastMsgMap.put(userId, lastWallNote);
                     }
                 }
             }
         }
-        // Exception thrown when network timeout occurs
-        catch (InterruptedIOException e) {
-            System.err.println ("Remote host timed out during read operation");
-        }
-        // Exception thrown when general network I/O error occurs
-        catch (IOException e) {
-            System.err.println ("Network I/O error - " + e);
-        }
+
+        return userIdLastMsgMap;
     }
 
-    public static void printSet(HashSet idSet){
-        System.out.println("");
-
-        Iterator<String> it = idSet.iterator();
-        while(it.hasNext()){
-            String element = it.next();
-            System.out.println(element);
+    public static void printMap(Map<String, String> map){
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            
         }
-        System.out.println("Count: " + idSet.size());
-
     }
 
     private static void write(String filename, String text) throws FileNotFoundException {
