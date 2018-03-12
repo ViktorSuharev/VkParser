@@ -13,59 +13,74 @@ import java.io.InterruptedIOException;
 import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 public class RandomWallParser {
 
-    public static void main(String[] args) throws IOException {
-        String APP_ID = "4819849";
-        String accessToken = "";
-        HashSet<String> idSet = new HashSet();
+    private static final long DELAY_TIME = 300L;
 
-        String responseOfRandomUsers = VkApi.with(APP_ID, accessToken).getRandomUsers();
+    private Set<String> idSet;
 
-        JsonElement jRandomUsers = new JsonParser().parse(responseOfRandomUsers);
-        JsonObject  jResponseOfRandomUsers = jRandomUsers.getAsJsonObject();
-        jResponseOfRandomUsers = jResponseOfRandomUsers.getAsJsonObject("response");
-        JsonArray jarrayItemsOfRandomUsers = jResponseOfRandomUsers.getAsJsonArray("items");
-        JsonObject jItemOfRandomUsers;
-        for (int i = 0; i < jarrayItemsOfRandomUsers.size(); ++i){
-            jItemOfRandomUsers = jarrayItemsOfRandomUsers.get(i).getAsJsonObject();
-            idSet.add(jItemOfRandomUsers.get("id").toString());
+    public void collect(VkApi vkApi) throws IOException {
+        JsonArray jRandomUserItems = collectUserIds(vkApi);
+        collectUserFriendIds(vkApi, jRandomUserItems);
+
+    }
+
+    private JsonArray collectUserIds(VkApi vkApi) throws IOException {
+        String responseOfRandomUsers = vkApi.getRandomUsers();
+        JsonArray jRandomUserItems = new JsonParser()
+                .parse(responseOfRandomUsers)
+                .getAsJsonObject()
+                .getAsJsonObject("response")
+                .getAsJsonArray("items");
+
+        idSet = new HashSet<>();
+        for (JsonElement jsonElement : jRandomUserItems) {
+            String userId = jsonElement
+                    .getAsJsonObject()
+                    .get("id")
+                    .toString();
+            idSet.add(userId);
         }
 
         System.out.println("Size of set is " + idSet.size());
         System.out.println("");
 
-        String userId;
-        for (int i = 0; i < jarrayItemsOfRandomUsers.size(); ++i){
-            jItemOfRandomUsers = jarrayItemsOfRandomUsers.get(i).getAsJsonObject();
-            userId = jItemOfRandomUsers.get("id").toString();
 
-            //delay for 0.3 second
-            try {
-                Thread.sleep(300);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                System.out.println("Exception has occured");
-            }
+        return jRandomUserItems;
+    }
+
+    private void collectUserFriendIds(VkApi vkApi, JsonArray jRandomUserItems) throws IOException {
+        for (int i = 0; i < jRandomUserItems.size(); ++i){
+            String userId = jRandomUserItems
+                    .get(i)
+                    .getAsJsonObject()
+                    .get("id")
+                    .toString();
 
             // get friends of random users
-            String responseFriends = VkApi.with(APP_ID, accessToken).getUserFriends(userId);
+            String userFriends = vkApi.getUserFriends(userId);
+            delay(DELAY_TIME);
 
-            JsonElement jFriends = new JsonParser().parse(responseFriends);
-            JsonObject jResponseOfFriends = jFriends.getAsJsonObject();
-            jResponseOfFriends = jResponseOfFriends.getAsJsonObject("response");
-            JsonArray jarrayItemsOfFriends = jResponseOfFriends.getAsJsonArray("items");
+            JsonArray jFriendItems = new JsonParser()
+                    .parse(userFriends)
+                    .getAsJsonObject()
+                    .getAsJsonObject("response")
+                    .getAsJsonArray("items");
 
-            if (jarrayItemsOfFriends.size() != 0) {    // May be user have not any friends.
-                for (int j = 0; j < jarrayItemsOfFriends.size(); ++j){
-                    idSet.add(jarrayItemsOfFriends.get(j).toString());
+            // May be user have not any friends.
+            if (jFriendItems.size() != 0) {
+                for (int j = 0; j < jFriendItems.size(); ++j){
+                    idSet.add(jFriendItems.get(j).toString());
                 }
             }
         }
 
         System.out.println("Size of set is " + idSet.size());
+    }
 
+    private void getWallNotes(VkApi vkApi) throws IOException {
         try {
             long counter = 0;
             Iterator <String> it = idSet.iterator();
@@ -73,43 +88,38 @@ public class RandomWallParser {
             printStream.println(idSet.size());
             while(it.hasNext()){
                 counter++;
-                userId = it.next();
+                String userId = it.next();
                 System.out.println("Current user is " + userId);
                 printStream.println("Current user is " + userId);
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                    System.out.println("Exception has occurred");
-                }
 
-                String responseOfWallNotes = VkApi.with(APP_ID, accessToken).getWallByUserId(userId);
-                JsonElement jWallNotes = new JsonParser().parse(responseOfWallNotes);
-                JsonObject  jResponseOfWallNotes = jWallNotes.getAsJsonObject();
-                jResponseOfWallNotes = jResponseOfWallNotes.getAsJsonObject("response");
-                if (jResponseOfWallNotes != null) {   // May be user with current ID has deleted profile. In this case vk api sent error response
-                    JsonArray jarrayItemsOfWallNotes = jResponseOfWallNotes.getAsJsonArray("items");
-                    if (jarrayItemsOfWallNotes.size() != 0) { // May be user have not any notes on the wall.
-                        jResponseOfWallNotes = jarrayItemsOfWallNotes.get(0).getAsJsonObject();
-                        if (!jResponseOfWallNotes.get("text").toString().equals("\"\"")) {
-                            //printStream.println(jResponseOfWallNotes.get("text").toString().substring(1, jResponseOfWallNotes.get("text").toString().length() - 1));
-                            System.out.println(counter + " " + jResponseOfWallNotes.get("text").toString());
-                            printStream.println(counter + " " + jResponseOfWallNotes.get("text").toString());
+                delay(DELAY_TIME);
+                String wallNotes = vkApi.getWallByUserId(userId);
+
+                JsonObject jWallNotes = new JsonParser()
+                        .parse(wallNotes)
+                        .getAsJsonObject()
+                        .getAsJsonObject("response");
+
+                if (jWallNotes != null) {   // May be user with current ID has deleted profile. In this case vk api sent error response
+                    JsonArray jWallNoteItems = jWallNotes.getAsJsonArray("items");
+                    if (jWallNoteItems.size() != 0) { // May be user have not any notes on the wall.
+                        jWallNotes = jWallNoteItems.get(0).getAsJsonObject();
+                        if (!jWallNotes.get("text").toString().equals("\"\"")) {
+                            System.out.println(counter + " " + jWallNotes.get("text").toString());
+                            printStream.println(counter + " " + jWallNotes.get("text").toString());
                         }
                     }
                 }
             }
-            //printStream.close();
         }
         // Exception thrown when network timeout occurs
-        catch (InterruptedIOException iioe) {
+        catch (InterruptedIOException e) {
             System.err.println ("Remote host timed out during read operation");
         }
         // Exception thrown when general network I/O error occurs
-        catch (IOException ioe) {
-            System.err.println ("Network I/O error - " + ioe);
+        catch (IOException e) {
+            System.err.println ("Network I/O error - " + e);
         }
-
     }
 
     public static void printSet(HashSet idSet){
@@ -128,5 +138,14 @@ public class RandomWallParser {
         PrintStream printStream = new PrintStream(new FileOutputStream(filename, true), true);
         printStream.println(text);
         printStream.close();
+    }
+
+    private static void delay(long time) {
+        //delay for 0.3 second
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

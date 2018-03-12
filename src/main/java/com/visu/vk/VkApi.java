@@ -1,5 +1,8 @@
 package com.visu.vk;
 
+import com.google.gson.JsonObject;
+import com.visu.vk.dialog.history.HistoryManager;
+
 import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -8,6 +11,7 @@ import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 
 public final class VkApi {
 
@@ -25,6 +29,11 @@ public final class VkApi {
             + "?{PARAMETERS}"
             + "&access_token={ACCESS_TOKEN}"
             + "&v=" + API_VERSION;
+
+    public static VkApi getDefaultInstance(String accessToken) throws IOException {
+        String APP_ID = "4819849";
+        return VkApi.with(APP_ID, accessToken);
+    }
 
     public static VkApi with(String appId, String accessToken) throws IOException {
         return new VkApi(appId, accessToken);
