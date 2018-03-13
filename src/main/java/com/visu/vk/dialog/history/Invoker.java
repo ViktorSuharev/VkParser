@@ -1,16 +1,16 @@
 package com.visu.vk.dialog.history;
 
-import com.google.gson.JsonObject;
 import com.visu.vk.VkApi;
 
-import java.util.List;
-
 public class Invoker {
+
+    private static final String OUTPUT_FILE_NAME = "collocutor_output.txt";
+    private static final String COLLOCUTOR_ID = "400001943";
+
     public static void main(String[] args) throws Exception {
         VkApi vkApi = VkApi.getDefaultInstance(null);
 
         HistoryManager historyManager = new HistoryManager();
-        List<JsonObject> msgInfoList = historyManager.extractAllDialogHistory(vkApi);
-        historyManager.writeRecords(msgInfoList);
+        historyManager.extractAllDialogHistory(vkApi, COLLOCUTOR_ID, OUTPUT_FILE_NAME);
     }
 }

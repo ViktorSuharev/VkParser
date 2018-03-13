@@ -5,18 +5,15 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.visu.vk.VkApi;
 
-import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class HistoryManager {
 
-    private static final String USER_ID = "400001943";
     private static final int OFFSET = 0;
     private static final int COUNT = 200;
     private static final boolean REV = false;
@@ -24,20 +21,22 @@ public class HistoryManager {
     private String lastId;
     private boolean isEnd;
 
-    public List<JsonObject> extractAllDialogHistory(VkApi vkApi) throws Exception {
+    public List<JsonObject> extractAllDialogHistory(VkApi vkApi, String collocutorId, String output) throws Exception {
         List<JsonObject> msgInfo = new ArrayList<>();
         while (!isEnd) {
-            extractDialogHistoryBulk(vkApi, msgInfo, lastId);
+            extractDialogHistoryBulk(vkApi, msgInfo, lastId, collocutorId);
             Thread.sleep(400L);
         }
+
+        writeRecords(output, msgInfo, collocutorId);
 
         return msgInfo;
     }
 
-    private void extractDialogHistoryBulk(VkApi vkApi, List<JsonObject> msgInfo, String lastMsgId) throws IOException {
+    private void extractDialogHistoryBulk(VkApi vkApi, List<JsonObject> msgInfo, String lastMsgId, String userId) throws IOException {
         String response = (lastMsgId == null) ?
-                vkApi.getHistory(USER_ID, OFFSET, COUNT, REV) :
-                vkApi.getHistory(USER_ID, OFFSET, COUNT, lastMsgId);
+                vkApi.getHistory(userId, OFFSET, COUNT, REV) :
+                vkApi.getHistory(userId, OFFSET, COUNT, lastMsgId);
 
         JsonArray jMessageItems = new JsonParser()
                 .parse(response)
@@ -60,21 +59,21 @@ public class HistoryManager {
         System.out.println(lastMsgId);
     }
 
-    public void writeRecords(List<JsonObject> msgInfo) throws Exception {
-        try (Writer writer = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream("output.txt"), "utf-8"))) {
+    private void writeRecords(String fileName, List<JsonObject> msgInfo, String collocutorId) throws Exception {
+        try (PrintStream printStream = new PrintStream(new FileOutputStream(fileName, true), true)) {
             Collections.reverse(msgInfo);
-            for (JsonObject msgInfoItem : msgInfo) {
-                String record = getUserNameById(msgInfoItem.get("from_id").toString())
-                        + ": "
-                        + msgInfoItem.get("body").toString()
-                        + "\n";
-                writer.write(record);
-            }
+            msgInfo.forEach((msgInfoItem) -> printStream.println(formatString(msgInfoItem, collocutorId)));
         }
     }
 
-    private String getUserNameById(String userId) {
-        return (USER_ID.equals(userId)) ? "Collocutor" : "Me";
+    private String formatString(JsonObject msgInfoItem, String collocutorId) {
+        return getUserNameById(msgInfoItem, collocutorId)
+                + ": "
+                + msgInfoItem.get("body").toString()
+                + "\n";
+    }
+
+    private String getUserNameById(JsonObject userId, String collocutorId) {
+        return (collocutorId.equals(userId.get("from_id").toString())) ? "Collocutor" : "Me";
     }
 }

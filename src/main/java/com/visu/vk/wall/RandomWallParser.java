@@ -9,11 +9,9 @@ import com.visu.vk.VkApi;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,11 +21,11 @@ public class RandomWallParser {
 
     private Set<String> idSet;
 
-    public void collect(VkApi vkApi) throws IOException {
+    public void collect(VkApi vkApi, String output) throws IOException {
         JsonArray jRandomUserItems = collectUserIds(vkApi);
         collectUserFriendIds(vkApi, jRandomUserItems);
         Map<String, String> userIdLastMsgMap = getWallNotes(vkApi);
-
+        writeToOutputFile(output, userIdLastMsgMap);
     }
 
     private JsonArray collectUserIds(VkApi vkApi) throws IOException {
@@ -111,24 +109,24 @@ public class RandomWallParser {
         return userIdLastMsgMap;
     }
 
-    public static void printMap(Map<String, String> map){
-        for (Map.Entry<String, String> entry : map.entrySet()) {
-            
+    private void writeToOutputFile(String filename, Map<String, String> map) {
+        try (PrintStream printStream = new PrintStream(new FileOutputStream(filename, true), true)) {
+            map.forEach((k, v) -> printStream.println(formatString(k, v)));
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found " + filename);
         }
     }
 
-    private static void write(String filename, String text) throws FileNotFoundException {
-        PrintStream printStream = new PrintStream(new FileOutputStream(filename, true), true);
-        printStream.println(text);
-        printStream.close();
+    private String formatString(String userId, String userValue) {
+        return userId + " " + userValue;
     }
 
-    private static void delay(long time) {
+    private void delay(long time) {
         //delay for 0.3 second
         try {
             Thread.sleep(time);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
+        } catch (InterruptedException e) {
+            System.out.println("Interrupted exception");
         }
     }
 }
