@@ -50,13 +50,11 @@ public class HistoryManager {
             msgInfo.add(jMessage);
         }
 
-        System.out.println("number of msgs " + jMessageItems.size());
         if (jMessageItems.size() < 200) {
             isEnd = true;
         }
 
         this.lastId = lastMsgId;
-        System.out.println(lastMsgId);
     }
 
     private void writeRecords(String fileName, List<JsonObject> msgInfo, String collocutorId) throws Exception {
@@ -67,13 +65,10 @@ public class HistoryManager {
     }
 
     private String formatString(JsonObject msgInfoItem, String collocutorId) {
-        return getUserNameById(msgInfoItem, collocutorId)
-                + ": "
-                + msgInfoItem.get("body").toString()
-                + "\n";
+        return getUserNameById(msgInfoItem, collocutorId) + msgInfoItem.get("body").toString();
     }
 
     private String getUserNameById(JsonObject userId, String collocutorId) {
-        return (collocutorId.equals(userId.get("from_id").toString())) ? "Collocutor" : "Me";
+        return (collocutorId.equals(userId.get("from_id").toString())) ? "Collocutor: " : "Me: ";
     }
 }
